@@ -1,0 +1,469 @@
+/* Norton Commander retro theme — ported from the spike (task 14.1).
+ *
+ * Dual-pane TUI: blue background (--nc-blue), box-drawing borders, per-panel
+ * column headers, highlighted active-panel border/title, bottom Function_Bar.
+ * The top app title and the search line are stacked vertically so they never
+ * overlap or render on top of each other.
+ */
+
+:root {
+  --nc-blue: #0000a8;
+  --nc-blue-bright: #0000d0;
+  --nc-cyan: #00a8a8;
+  --nc-cyan-bright: #00ffff;
+  --nc-white: #d8d8d8;
+  --nc-bright-white: #ffffff;
+  --nc-yellow: #ffff54;
+  --nc-grey: #54aaaa;
+  --nc-selection: #00a8a8;
+  --nc-selection-fg: #000000;
+  --nc-black: #000000;
+  --nc-red: #ff5454;
+  --nc-green: #54ff54;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--nc-black);
+  color: var(--nc-white);
+  font-family: 'Cascadia Mono', 'Consolas', 'SF Mono', 'Menlo', 'DejaVu Sans Mono', monospace;
+  font-size: 15px;
+  line-height: 1.3;
+  overflow: hidden;
+}
+
+.screen {
+  height: 100vh;
+  width: 100vw;
+  background: var(--nc-blue);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+
+.top-bar {
+  flex: 0 0 auto;
+  color: var(--nc-black);
+  background: var(--nc-cyan);
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  min-height: 22px;
+}
+
+.top-bar .title {
+  font-weight: bold;
+}
+
+.top-bar .tagline {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-line {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 6px;
+  background: var(--nc-blue-bright);
+  color: var(--nc-bright-white);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.search-label {
+  flex: 0 0 auto;
+}
+
+.search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--nc-yellow);
+  outline: none;
+  font: inherit;
+}
+
+.search-input::placeholder {
+  color: var(--nc-grey);
+}
+
+.search-count {
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+.sort-indicator {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  color: var(--nc-cyan);
+}
+
+.panels {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel {
+  flex: 1 1 50%;
+  border: 1px solid var(--nc-grey);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--nc-blue);
+}
+
+.panel.active {
+  border-color: var(--nc-bright-white);
+}
+
+.panel-title {
+  text-align: center;
+  color: var(--nc-black);
+  background: var(--nc-grey);
+  margin: 0 auto;
+  padding: 0 10px;
+  margin-top: -1px;
+  position: relative;
+  top: -1px;
+  white-space: nowrap;
+}
+
+.panel.active .panel-title {
+  background: var(--nc-bright-white);
+  color: var(--nc-black);
+  font-weight: bold;
+}
+
+.col-head {
+  display: flex;
+  padding: 2px 6px;
+  color: var(--nc-yellow);
+  border-bottom: 1px solid var(--nc-grey);
+  white-space: nowrap;
+}
+
+.rows {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1px 2px;
+  position: relative;
+}
+
+.rows::-webkit-scrollbar {
+  width: 8px;
+}
+.rows::-webkit-scrollbar-thumb {
+  background: var(--nc-grey);
+}
+
+/* Virtualized spacer: gives the scroll container the full list height so the
+ * native scrollbar reflects the whole catalog while only visible rows mount. */
+.rows-viewport {
+  position: relative;
+  width: 100%;
+}
+
+.rows-window {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.row {
+  display: flex;
+  padding: 0 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--nc-white);
+}
+
+.row:hover {
+  color: var(--nc-bright-white);
+}
+
+.row.selected {
+  background: var(--nc-selection);
+  color: var(--nc-selection-fg);
+}
+
+.panel:not(.active) .row.selected {
+  background: var(--nc-grey);
+  color: var(--nc-black);
+}
+
+.cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+}
+
+.cell.code {
+  flex: 0 0 72px;
+}
+.cell.title {
+  flex: 1 1 auto;
+  min-width: 80px;
+}
+.cell.track {
+  flex: 0 0 110px;
+}
+/* Day and time never truncate: they are fixed-width and the title flexes. */
+.cell.day {
+  flex: 0 0 92px;
+  overflow: visible;
+  text-overflow: clip;
+}
+.cell.time {
+  flex: 0 0 56px;
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Schedule start stamp ("Mon Nov 30 09:00"): fixed-width, never truncates. */
+.cell.when {
+  flex: 0 0 148px;
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Seat label is fixed-width and never truncates so "veryLimited",
+   "unavailable", "reserved", and "walk-up" read in full. */
+.cell.seat {
+  flex: 0 0 100px;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Off-screen but focusable/submittable (hidden form submit for Enter-to-save). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Conflict indicator: just wide enough for the single ⚠ glyph. */
+.cell.conflict {
+  flex: 0 0 20px;
+  text-align: center;
+  padding-right: 0;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.seat-available {
+  color: var(--nc-green);
+}
+.seat-limited {
+  color: var(--nc-yellow);
+}
+.seat-veryLimited {
+  color: var(--nc-yellow);
+}
+.seat-unavailable {
+  color: var(--nc-red);
+}
+.seat-walkUp {
+  color: var(--nc-bright-white);
+}
+/* A seat the attendee holds: "reserved" in green, overriding the catalog band. */
+.seat-reserved {
+  color: var(--nc-green);
+}
+
+.empty {
+  padding: 12px;
+  color: var(--nc-cyan-bright);
+  font-style: italic;
+}
+
+/* Folder-tree navigation (Requirement 17): a breadcrumb path indicator above
+ * the rows, and folder / ".." rows visually distinct from Session_File rows. */
+.breadcrumb {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  color: var(--nc-yellow);
+  background: var(--nc-blue-bright);
+  border-bottom: 1px solid var(--nc-grey);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-row .tree-glyph {
+  flex: 0 0 56px;
+  color: var(--nc-cyan-bright);
+  font-weight: bold;
+}
+
+.tree-row .tree-name {
+  flex: 1 1 auto;
+  min-width: 80px;
+}
+
+.tree-row .tree-count {
+  flex: 0 0 64px;
+  text-align: right;
+  color: var(--nc-grey);
+}
+
+/* Folders and ".." render in cyan so they stand apart from white session rows. */
+.tree-folder,
+.tree-parent {
+  color: var(--nc-cyan-bright);
+}
+
+.tree-folder:hover,
+.tree-parent:hover {
+  color: var(--nc-bright-white);
+}
+
+.tree-folder.selected .tree-count,
+.tree-parent.selected .tree-name {
+  color: var(--nc-selection-fg);
+}
+
+.status-line {
+  flex: 0 0 auto;
+  color: var(--nc-black);
+  background: var(--nc-cyan);
+  padding: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 22px;
+}
+
+.func-bar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  padding-top: 2px;
+}
+
+.func-key {
+  flex: 1 1 10%;
+  display: flex;
+  gap: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.func-key .num {
+  color: var(--nc-white);
+}
+
+.func-key .label {
+  background: var(--nc-cyan);
+  color: var(--nc-black);
+  flex: 1 1 auto;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.func-key.unbound .label {
+  background: var(--nc-grey);
+  color: #004444;
+}
+
+/* Modal overlay (detail / help) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialog {
+  background: var(--nc-grey);
+  color: var(--nc-black);
+  border: 2px solid var(--nc-bright-white);
+  min-width: 480px;
+  max-width: 70vw;
+  max-height: 80vh;
+  overflow: auto;
+  padding: 0;
+}
+
+.dialog-title {
+  background: var(--nc-cyan);
+  color: var(--nc-black);
+  font-weight: bold;
+  text-align: center;
+  padding: 2px;
+}
+
+.dialog-body {
+  padding: 10px 14px;
+}
+
+.dialog-body .field {
+  margin-bottom: 6px;
+}
+
+.dialog-body .field .k {
+  color: #003333;
+  display: inline-block;
+  min-width: 96px;
+}
+
+.dialog-body .abstract {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #004444;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.dialog-body .seat-band {
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: var(--nc-blue);
+  color: var(--nc-white);
+}
+
+.dialog-body .loading,
+.dialog-body .error {
+  font-style: italic;
+}
+
+.dialog-body .error {
+  color: #7a0000;
+}
+
+.dialog-footer {
+  text-align: center;
+  padding: 6px;
+  color: #003333;
+}

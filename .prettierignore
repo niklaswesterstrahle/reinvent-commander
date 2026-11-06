@@ -1,0 +1,7 @@
+node_modules
+dist
+spike
+playwright-report
+test-results
+package-lock.json
+.kiro

@@ -1,0 +1,18 @@
+{
+  "name": "@reinvent-commander/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^10.0.1",
+    "@fastify/static": "^8.0.2",
+    "@reinvent-commander/shared": "*",
+    "fastify": "^5.1.0"
+  }
+}
